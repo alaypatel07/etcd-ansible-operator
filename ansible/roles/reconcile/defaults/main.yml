@@ -32,6 +32,7 @@ etcd_client_tls_commands: []
 etcd_secure_client: "absent"
 etcd_secure_peer: "absent"
 etcd_remove_pods: []
+etcd_members: []
 
 #etcd_endpoints: http://192.168.39.245:32379
 storage_type: S3

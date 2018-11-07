@@ -36,6 +36,16 @@
     retries: 5
     delay: 10
 
+  - name: Wait while all services terminate
+    vars:
+    - services: "{{ q('k8s', api_version='v1', kind='Service', namespace=cluster_spec.metadata.namespace,
+           label_selector='etcd_cluster='+ meta.name + ',app=etcd') }}"
+    set_fact:
+      c_services: "{{ services }}"
+    until: services|length == 0
+    retries: 5
+    delay: 10
+
 
   - name: Set fact spec.pause to be true
     set_fact:
