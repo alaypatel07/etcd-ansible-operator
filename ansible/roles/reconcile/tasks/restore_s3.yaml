@@ -1,0 +1,32 @@
+- name: set facts
+  set_fact:
+    pod_name: trial
+    command:
+    - ansible-playbook
+    args:
+    - "/tmp/ansible/get_file.yaml"
+    - "--extra-vars"
+    - '{"s_3": {"path": "alay-etcd-backup/etcd.backup", "aws_secret": "aws"}, "storage_type": "S3"}'
+
+
+- name: create a pod with init container to get
+  k8s:
+    state: present
+    definition:
+      apiVersion: "v1"
+      kind: "Pod"
+      metadata:
+        name: "{{pod_name}}"
+        namespace: "default"
+      spec:
+        hostname: "{{ pod_name }}"
+        containers:
+        - name: "etcd"
+          image: "docker.io/alaypatel07/etcd-ansible-restore"
+          command: "{{ command }}"
+          ports:
+          - containerPort: 60000
+            name: metrics
+          imagePullPolicy: Always
+
+- meta: end_play

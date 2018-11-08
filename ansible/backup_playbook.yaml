@@ -3,7 +3,7 @@
 - hosts: localhost
   tasks:
   - debug: msg="Running Etcd Ansible Operator Playbook"
-  - name: set fact back_s3
+  - name: set fact backup_s3
     set_fact:
       backup_s3: true
   - import_role:

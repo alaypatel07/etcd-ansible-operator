@@ -1,0 +1,56 @@
+---
+
+- hosts: localhost
+  tasks:
+  - name: Exit if storage_type is not S3
+    fail:
+      msg: "Only S3 storage_type is supported"
+    when: storage_type != "S3"
+
+  - name: Exit if bucket name is undefined
+    fail:
+      msg: "Bucket name is undefined"
+    when: s_3_path is undefined
+
+  - name: Exit if aws secret is undefined
+    fail:
+      msg: "aws secret is undefined"
+    when: s_3_aws_secret is undefined
+
+
+  - name: Lookup aws-secret
+    set_fact:
+      aws_secret: "{{ lookup('k8s', api_version='v1', kind='Secret', namespace='default', resource_name=s_3_aws_secret)}}"
+
+  - name: Decode credentials
+    set_fact:
+      aws_credentials: "{{ aws_secret.data.credentials | b64decode }}"
+      aws_configuration: "{{ aws_secret.data.config | b64decode }}"
+    when: aws_secret is defined and aws_secret.data is defined and
+          aws_secret.data.config is defined and aws_secret.data.credentials is defined
+
+  - name: Create boto configuration file
+    copy:
+      dest: "/tmp/boto"
+      mode: 0777
+      content: "{{ aws_credentials }}"
+
+  - name: Set access id and key
+    set_fact:
+      aws_access_key_id: "{{ lookup('ini', 'aws_access_key_id section=default file=/tmp/boto') }}"
+      aws_secret_access_key: "{{ lookup('ini', 'aws_secret_access_key section=default file=/tmp/boto') }}"
+      aws_bucket: "{{ s_3_path.split('/')[0] }}"
+      aws_object: "{{ s_3_path.split('/')[1:] | join('/') }}"
+      local_file: "{{ file_path }}/latest.backup"
+
+  - name: Download data
+    aws_s3:
+      bucket: "{{ aws_bucket }}"
+      object: "{{ aws_object }}"
+      aws_access_key: "{{ aws_access_key_id }}"
+      aws_secret_key: "{{ aws_secret_access_key }}"
+      dest: "{{ local_file }}"
+      mode: get
+    when: aws_bucket is defined and aws_object is defined
+
+  - meta: end_play

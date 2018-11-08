@@ -27,7 +27,7 @@
 
 - name: get members of cluster
   vars:
-    members: "{{ lookup('etcd_member', cluster_host= etcd_cluster_name + '-client.' + etcd_namespace + '.svc',
+    members: "{{ q('etcd_member', cluster_host= etcd_cluster_name + '-client.' + etcd_namespace + '.svc',
                   cluster_port= etcd_client_port) }}"
   set_fact:
     etcd_cluster_members: "{{ members }}"
@@ -99,7 +99,7 @@
 
 - name: generate member peer urls
   set_fact:
-    etcd_peer_urls: "{{ etcd_peer_urls + [ item + '=' + etcd_peer_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc:' + etcd_peer_port|string ] }}"
+    etcd_peer_urls: "{{ etcd_peer_urls + [ item + '=' + etcd_peer_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc.cluster.local:' + etcd_peer_port|string ] }}"
   loop: "{{ etcd_members + etcd_new_members}}"
 
 - name: set cluster token
@@ -182,20 +182,19 @@
                     ; sleep
                     {{ sleep_time }}
                     ; done"
-    init_command: " TIMEOUT_READY=0 ;while ( ! nslookup
-                    {{ item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc' }}
-                    )
-                      do
-                          TIMEOUT_READY=$(( TIMEOUT_READY-1 ))
-                          if [ $TIMEOUT_READY -eq 0 ];
-                          then
-                              echo Timed out waiting for DNS entry
-                              exit 1
-                          fi
-                          sleep 1
-                      done"
-    etcd_peer_url: "{{etcd_peer_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc:' + etcd_peer_port|string }}"
-    etcd_client_url: "{{etcd_client_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc:' + etcd_client_port|string }}"
+    init_command: " TIMEOUT_READY=0;
+                    while ( ! nslookup {{ item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc' }} )
+                    do
+                        TIMEOUT_READY=$(( TIMEOUT_READY-1 ));
+                        if [ $TIMEOUT_READY -eq 0 ];
+                        then
+                            echo     Timed out waiting for DNS entry;
+                    exit 1;
+                    fi;
+                    sleep 1;
+                    done"
+    etcd_peer_url: "{{etcd_peer_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc.cluster.local:' + etcd_peer_port|string }}"
+    etcd_client_url: "{{etcd_client_protocol + '' + item + '.' + etcd_cluster_name + '.' + etcd_namespace + '.svc.cluster.local:' + etcd_client_port|string }}"
     etcd_listen_peer_url: "{{ etcd_peer_protocol + '0.0.0.0:' + etcd_peer_port|string }}"
     etcd_listen_client_url: "{{ etcd_client_protocol + '0.0.0.0:' +  etcd_client_port|string }}"
     etcd_data_dir: "/var/etcd/data"

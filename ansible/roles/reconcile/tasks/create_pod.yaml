@@ -1,4 +1,57 @@
 ---
+
+- name: initialize init_containers
+  set_fact:
+    init_containers:
+      - name: "check-dns"
+        image: "busybox"
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - "{{ init_command }}"
+
+- block:
+    - name: set command for ansible container
+      set_fact:
+        fetch_args:
+          - "/tmp/ansible/get_file.yaml"
+          - "-e"
+          - "s_3_path={{ s_3.path }}"
+          - "-e"
+          - "s_3_aws_secret={{ s_3.aws_secret }}"
+          - "-e"
+          - "storage_type={{ storage_type }}"
+          - "-e"
+          - "file_path=/var/etcd"
+
+    - name: Initialise ansible container
+      set_fact:
+        restore_containers:
+        - name: "fetch-backup"
+          image: "docker.io/alaypatel07/etcd-ansible-restore"
+          command: ["ansible-playbook"]
+          args: "{{ fetch_args }}"
+          imagePullPolicy: Always
+          volumeMounts: "{{ etcd_volume_mounts }}"
+        - name: "restore-datadir"
+          image: "{{ image }}"
+          command:
+          - "/bin/sh"
+          - "-ec"
+          - "ETCDCTL_API=3 etcdctl snapshot restore /var/etcd/latest.backup
+              --name \"{{ pod_name }}\"
+              --initial-cluster {{ pod_name }}=\"{{ etcd_peer_url }}\"
+              --initial-cluster-token {{ etcd_token }}
+              --initial-advertise-peer-urls \"{{ etcd_peer_url }}\"
+              --data-dir /var/etcd/data 2>/dev/termination-log"
+          volumeMounts: "{{ etcd_volume_mounts }}"
+
+    - name: Add to init containers
+      set_fact:
+        init_containers: "{{ init_containers + restore_containers}}"
+
+  when: restore_s3 is defined and restore_s3 == true
+
 # Steps for making a pod join a cluster
 # 1. generate a pod name
 # 2. get list of client urls. Format: %s.%s.%s.svc - pod-name.cluster-name.namespace.svc
@@ -21,23 +74,17 @@
       spec:
         hostname: "{{ pod_name }}"
         subdomain: "{{ etcd_cluster_name }}"
-        initConatiners:
-        - name: "check-dns"
-          image: "busybox:1.28.0-glibc"
-          command: ["/bin/sh"]
-          args:
-          - "-c"
-          - "{{init_command}}"
+        initContainers: "{{ init_containers }}"
         containers:
         - name: "etcd"
 #        TODO: make it generic i.e. repository:vversion
           image: "{{ image }}"
           command: "{{ etcd_command }}"
           ports:
-          - containerPort: "{{etcd_client_port}}"
+          - containerPort: "{{etcd_peer_port}}"
             name: "server"
             protocol: "TCP"
-          - containerPort: "{{etcd_peer_port}}"
+          - containerPort: "{{etcd_client_port}}"
             name: "client"
             protocol: "TCP"
           volumeMounts: "{{ etcd_volume_mounts }}"

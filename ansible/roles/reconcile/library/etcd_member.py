@@ -188,6 +188,7 @@ def run_module():
 
     module.exit_json(**result)
 
+
 def etcd_member_present(**kwargs):
     if kwargs['name'] == '':
         raise Exception('name')
@@ -195,7 +196,8 @@ def etcd_member_present(**kwargs):
         raise Exception('peer_urls')
 
     try:
-        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'], kwargs['cert_key'],
+        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'],
+                                      kwargs['cert_key'],
                                       kwargs['cert_cert'])
         add_member(client, kwargs['peer_urls'])
 
@@ -209,7 +211,8 @@ def etcd_member_absent(**kwargs):
     if kwargs['id'] == -1:
         raise Exception('id')
     try:
-        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'], kwargs['cert_key'],
+        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'],
+                                      kwargs['cert_key'],
                                       kwargs['cert_cert'])
         if kwargs['id'][0:2] == '0x':
             _id = int(kwargs['id'], 16)
@@ -225,8 +228,9 @@ def etcd_backup_present(**kwargs):
     if kwargs['filename'] == '':
         raise Exception('filename')
     try:
-        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'], kwargs['cert_key'],
-                                  kwargs['cert_cert'])
+        client = connect_etcd_cluster(kwargs['cluster_host'], kwargs['cluster_port'], kwargs['ca_cert'],
+                                      kwargs['cert_key'],
+                                      kwargs['cert_cert'])
         backup = create_backup(client, kwargs['filename'])
         return backup
     except etcd3.exceptions.ConnectionFailedError:
