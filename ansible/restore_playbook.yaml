@@ -8,117 +8,147 @@
       restore_s3: true
 
   - debug: msg={{ _etcd_database_coreos_com_etcdrestore.status }}
-#
-#  - name: Exit if bucket name is undefined
-#    fail:
-#      msg: "Bucket name is undefined"
-#    when: s_3.path is undefined
-#
-#  - name: Exit if aws secret is undefined
-#    fail:
-#      msg: "aws secret is undefined"
-#    when: s_3.aws_secret is undefined
-#
-#  - name: Get EtcdCluster cr and save the spec
-#    set_fact:
-#      cluster_spec: "{{ lookup('k8s',
-#                                api_version='etcd.database.coreos.com/v1beta2',
-#                                kind='EtcdCluster',
-#                                namespace=meta.namespace,
-#                                resource_name=meta.name)
-#                      }}"
-#
-#  - name: Delete EtcdCluster cr
-#    k8s:
-#      state: absent
-#      definition:
-#        apiVersion: "etcd.database.coreos.com/v1beta2"
-#        kind: "EtcdCluster"
-#        metadata:
-#          name: "{{ cluster_spec.metadata.name }}"
-#          namespace: "{{ cluster_spec.metadata.namespace }}"
-#    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
-#
-#  - name: Wait while all pods terminate
-#    vars:
-#      - pods: "{{ q('k8s', api_version='v1', kind='Pod', namespace=cluster_spec.metadata.namespace,
-#           label_selector='etcd_cluster='+ meta.name + ',app=etcd') }}"
-#    set_fact:
-#      c_pods: "{{ pods }}"
-#    until: pods|length == 0
-#    retries: 50
-#    delay: 10
-#
-#  - name: Wait while all services terminate
-#    vars:
-#    - services: "{{ q('k8s', api_version='v1', kind='Service', namespace=cluster_spec.metadata.namespace,
-#           label_selector='etcd_cluster='+ meta.name + ',app=etcd') }}"
-#    set_fact:
-#      c_services: "{{ services }}"
-#    until: services|length == 0
-#    retries: 50
-#    delay: 10
-#
-#
-#  - name: Set fact spec.pause to be true
-#    set_fact:
-#      etcd_api_version: "{{ cluster_spec.apiVersion }}"
-#      etcd_kind: "{{ cluster_spec.kind }}"
-#      etcd_cluster_metadata: "{{ cluster_spec.metadata }}"
-#      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': True}) }}"
-#    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
-#
-#
-#  - name: Create EtcdCluster cr
-#    k8s:
-#      state: present
-#      definition:
-#        apiVersion: "{{ etcd_api_version }}"
-#        kind: "{{ etcd_kind }}"
-#        metadata:
-#          name: "{{ etcd_cluster_metadata.name }}"
-#          namespace: "{{ etcd_cluster_metadata.namespace }}"
-#        spec: "{{ etcd_cluster_spec }}"
-#    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
-#
-#  - name: set cluster facts
-#    set_fact:
-#      size: 1
-#      version: "{{ etcd_cluster_spec.version }}"
-#
-#  - import_role:
-#      name: "lookup"
-#
-#  - import_role:
-#      name: "reconcile"
-#
-#  - name: Wait while 1 pods is running
-#    vars:
-#      - pods: "{{ q('k8s', api_version='v1', kind='Pod', namespace=cluster_spec.metadata.namespace,
-#           label_selector='etcd_cluster='+ cluster_spec.metadata.name + ',app=etcd') }}"
-#    set_fact:
-#      c_pods: "{{ pods }}"
-#    until: pods|length == 1 and pods[0].status.phase == "Running"
-#    retries: 5
-#    delay: 10
-#
-#  - name: Set fact spec.pause to be false
-#    set_fact:
-#      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': False, 'size': cluster_spec.spec.size}) }}"
-#
-#
-#  - name: Set fact etcd cluster definition
-#    set_fact:
-#      etcd_cluster_definition:
-#        apiVersion: "etcd.database.coreos.com/v1beta2"
-#        kind: "EtcdCluster"
-#        metadata:
-#          name: "{{ meta.name }}"
-#          namespace: "{{ meta.namespace }}"
-#        spec: "{{ etcd_cluster_spec }}"
-#
-#  - name: Update EtcdCluster cr
-#    k8s:
-#      state: present
-#      merge_type: merge
-#      definition: "{{ etcd_cluster_definition }}"
+
+#  TODO: This task will no be necessary after custom status is implemented
+  - name: Get EtcdRestore cr and save the spec
+    set_fact:
+      restore: "{{ lookup('k8s',
+                                api_version='etcd.database.coreos.com/v1beta2',
+                                kind='EtcdRestore',
+                                namespace=meta.namespace,
+                                resource_name=meta.name)
+                      }}"
+
+# TODO: This task will be replaced by custom status check
+  - meta: end_play
+    when: restore.spec.custom_phase is defined and restore.spec.custom_phase == "Completed"
+
+  - debug: msg="custom phase is not set hence first run"
+
+  - name: Exit if bucket name is undefined
+    fail:
+      msg: "Bucket name is undefined"
+    when: s_3.path is undefined
+
+  - name: Exit if aws secret is undefined
+    fail:
+      msg: "aws secret is undefined"
+    when: s_3.aws_secret is undefined
+
+  - name: Get EtcdCluster cr and save the spec
+    set_fact:
+      cluster_spec: "{{ lookup('k8s',
+                                api_version='etcd.database.coreos.com/v1beta2',
+                                kind='EtcdCluster',
+                                namespace=meta.namespace,
+                                resource_name=meta.name)
+                      }}"
+
+  - name: Delete EtcdCluster cr
+    k8s:
+      state: absent
+      definition:
+        apiVersion: "etcd.database.coreos.com/v1beta2"
+        kind: "EtcdCluster"
+        metadata:
+          name: "{{ cluster_spec.metadata.name }}"
+          namespace: "{{ cluster_spec.metadata.namespace }}"
+    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
+
+  - name: Wait while all pods terminate
+    vars:
+      - pods: "{{ q('k8s', api_version='v1', kind='Pod', namespace=cluster_spec.metadata.namespace,
+           label_selector='etcd_cluster='+ meta.name + ',app=etcd') }}"
+    set_fact:
+      c_pods: "{{ pods }}"
+    until: pods|length == 0
+    retries: 50
+    delay: 10
+
+  - name: Wait while all services terminate
+    vars:
+    - services: "{{ q('k8s', api_version='v1', kind='Service', namespace=cluster_spec.metadata.namespace,
+           label_selector='etcd_cluster='+ meta.name + ',app=etcd') }}"
+    set_fact:
+      c_services: "{{ services }}"
+    until: services|length == 0
+    retries: 50
+    delay: 10
+
+
+  - name: Set fact spec.pause to be true
+    set_fact:
+      etcd_api_version: "{{ cluster_spec.apiVersion }}"
+      etcd_kind: "{{ cluster_spec.kind }}"
+      etcd_cluster_metadata: "{{ cluster_spec.metadata }}"
+      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': True}) }}"
+    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
+
+
+  - name: Create EtcdCluster cr
+    k8s:
+      state: present
+      definition:
+        apiVersion: "{{ etcd_api_version }}"
+        kind: "{{ etcd_kind }}"
+        metadata:
+          name: "{{ etcd_cluster_metadata.name }}"
+          namespace: "{{ etcd_cluster_metadata.namespace }}"
+        spec: "{{ etcd_cluster_spec }}"
+    when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
+
+  - name: set cluster facts
+    set_fact:
+      size: 1
+      version: "{{ etcd_cluster_spec.version }}"
+
+  - import_role:
+      name: "lookup"
+
+  - import_role:
+      name: "reconcile"
+
+  - name: Wait while 1 pods is running
+    vars:
+      - pods: "{{ q('k8s', api_version='v1', kind='Pod', namespace=cluster_spec.metadata.namespace,
+           label_selector='etcd_cluster='+ cluster_spec.metadata.name + ',app=etcd') }}"
+    set_fact:
+      c_pods: "{{ pods }}"
+    until: pods|length == 1 and pods[0].status.phase == "Running"
+    retries: 5
+    delay: 10
+
+  - name: Set fact spec.pause to be false
+    set_fact:
+      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': False, 'size': cluster_spec.spec.size}) }}"
+
+  - name: Set fact etcd cluster definition
+    set_fact:
+      etcd_cluster_definition:
+        apiVersion: "etcd.database.coreos.com/v1beta2"
+        kind: "EtcdCluster"
+        metadata:
+          name: "{{ meta.name }}"
+          namespace: "{{ meta.namespace }}"
+        spec: "{{ etcd_cluster_spec }}"
+
+  - name: Update EtcdCluster cr
+    k8s:
+      state: present
+      merge_type: merge
+      definition: "{{ etcd_cluster_definition }}"
+
+
+# TODO: this task will not be necessary after custom status will be implemented
+  - name: Update etcdrestore cr, add custom_phase
+    k8s:
+      state: present
+      merge_type: merge
+      definition:
+        apiVersion: "etcd.database.coreos.com/v1beta2"
+        kind: etcdrestore
+        metadata:
+          name: "{{ meta.name }}"
+          namespace: "{{ meta.namespace }}"
+        spec:
+          custom_phase: Completed
