@@ -4,6 +4,4 @@
   - meta: end_play
     when: paused is defined and paused == true
   - import_role:
-      name: "lookup"
-  - import_role:
       name: "reconcile"
