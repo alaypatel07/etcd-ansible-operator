@@ -103,9 +103,6 @@
       version: "{{ etcd_cluster_spec.version }}"
 
   - import_role:
-      name: "lookup"
-
-  - import_role:
       name: "reconcile"
 
   - name: Wait while 1 pods is running

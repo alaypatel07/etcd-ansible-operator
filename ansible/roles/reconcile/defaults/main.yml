@@ -1,13 +1,13 @@
 ---
 # defaults file for etcd-ansible-operator
 
+
 image: "{{ 'quay.io/coreos/etcd:v' + version | string }}"
 etcd_namespace: "{{ meta.namespace }}"
+etcd_cluster_name: "{{ meta.name }}"
 etcd_client_port: 2379
 etcd_peer_port: 2380
 etcd_app_label: "etcd"
-etcd_cluster_name: "{{ meta.name }}"
-etcd_cluster_pods: []
 etcd_volume_mounts:
 - name: "etcd-data"
   mountPath: "/var/etcd"
@@ -15,6 +15,12 @@ etcd_volumes:
 - name: "etcd-data"
   source:
     emptyDir: {}
+
+etcd_cluster_services: "{{ q('k8s', api_version='v1', kind='Service', namespace=etcd_namespace,
+                             label_selector='etcd_cluster='+ etcd_cluster_name + ',app=' + etcd_app_label) }}"
+
+etcd_cluster_pods: "{{ q('k8s', api_version='v1', kind='Pod', namespace=etcd_namespace,
+                                               label_selector='etcd_cluster='+ etcd_cluster_name + ',app=' + etcd_app_label) }}"
 
 
 etcd_new_members: []
