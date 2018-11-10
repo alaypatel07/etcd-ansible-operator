@@ -20,7 +20,9 @@
           - "-e"
           - "s_3_aws_secret={{ s_3.aws_secret }}"
           - "-e"
-          - "storage_type={{ storage_type }}"
+          - "storage_type={{ backup_storage_type }}"
+          - "-e"
+          - "etcd_namespace={{ etcd_namespace }}"
           - "-e"
           - "file_path=/var/etcd"
 

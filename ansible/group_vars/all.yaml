@@ -9,4 +9,6 @@
 #      peer_secret: etcd-peer-tls
 #      server_secret: etcd-server-tls
 #    operator_secret: etcd-client-tls
+etcd_app_label: "etcd"
+etcd_cluster_name: "{{ meta.name }}"
 image: "{{ 'quay.io/coreos/etcd:v' + version|string }}"

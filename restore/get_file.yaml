@@ -20,7 +20,7 @@
 
   - name: Lookup aws-secret
     set_fact:
-      aws_secret: "{{ lookup('k8s', api_version='v1', kind='Secret', namespace='default', resource_name=s_3_aws_secret)}}"
+      aws_secret: "{{ lookup('k8s', api_version='v1', kind='Secret', namespace=etcd_namespace, resource_name=s_3_aws_secret)}}"
 
   - name: Decode credentials
     set_fact:

@@ -12,4 +12,5 @@
 - version: v1beta2
   group: etcd.database.coreos.com
   kind: EtcdRestore
+  reconcilePeriod: 10h
   playbook: /opt/ansible/restore_playbook.yaml
