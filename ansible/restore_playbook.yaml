@@ -2,10 +2,39 @@
 
 - hosts: localhost
   tasks:
-  - debug: msg="Running Etcd Ansible Operator Playbook"
+  - debug: msg="Running Etcd Restore Ansible Operator Playbook"
   - name: set fact restore_s3
     set_fact:
       restore_s3: true
+
+  - debug: msg={{ _etcd_database_coreos_com_etcdrestore.status }}
+
+#  TODO: This task will no be necessary after custom status is implemented
+  - name: Get EtcdRestore cr and save the spec
+    set_fact:
+      restore: "{{ lookup('k8s',
+                                api_version='etcd.database.coreos.com/v1beta2',
+                                kind='EtcdRestore',
+                                namespace=meta.namespace,
+                                resource_name=meta.name)
+                      }}"
+
+# TODO: This task will be replaced by custom status check
+  - meta: end_play
+    when: restore.spec.custom_phase is defined and restore.spec.custom_phase == "Completed"
+
+  - debug: msg="custom phase is not set hence first run"
+
+  - name: Exit if bucket name is undefined
+    fail:
+      msg: "Bucket name is undefined"
+    when: s_3.path is undefined
+
+  - name: Exit if aws secret is undefined
+    fail:
+      msg: "aws secret is undefined"
+    when: s_3.aws_secret is undefined
+
   - name: Get EtcdCluster cr and save the spec
     set_fact:
       cluster_spec: "{{ lookup('k8s',
@@ -33,7 +62,7 @@
     set_fact:
       c_pods: "{{ pods }}"
     until: pods|length == 0
-    retries: 5
+    retries: 50
     delay: 10
 
   - name: Wait while all services terminate
@@ -43,7 +72,7 @@
     set_fact:
       c_services: "{{ services }}"
     until: services|length == 0
-    retries: 5
+    retries: 50
     delay: 10
 
 
@@ -52,7 +81,7 @@
       etcd_api_version: "{{ cluster_spec.apiVersion }}"
       etcd_kind: "{{ cluster_spec.kind }}"
       etcd_cluster_metadata: "{{ cluster_spec.metadata }}"
-      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': True, 'size': 1}) }}"
+      etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': True}) }}"
     when: cluster_spec.metadata.name is defined and cluster_spec.metadata.namespace is defined
 
 
@@ -93,7 +122,6 @@
     set_fact:
       etcd_cluster_spec: "{{ cluster_spec.spec | combine({'paused': False, 'size': cluster_spec.spec.size}) }}"
 
-
   - name: Set fact etcd cluster definition
     set_fact:
       etcd_cluster_definition:
@@ -104,8 +132,23 @@
           namespace: "{{ meta.namespace }}"
         spec: "{{ etcd_cluster_spec }}"
 
-  - name: Create EtcdCluster cr
+  - name: Update EtcdCluster cr
     k8s:
       state: present
       merge_type: merge
       definition: "{{ etcd_cluster_definition }}"
+
+
+# TODO: this task will not be necessary after custom status will be implemented
+  - name: Update etcdrestore cr, add custom_phase
+    k8s:
+      state: present
+      merge_type: merge
+      definition:
+        apiVersion: "etcd.database.coreos.com/v1beta2"
+        kind: etcdrestore
+        metadata:
+          name: "{{ meta.name }}"
+          namespace: "{{ meta.namespace }}"
+        spec:
+          custom_phase: Completed

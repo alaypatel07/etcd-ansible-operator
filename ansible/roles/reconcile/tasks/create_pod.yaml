@@ -14,15 +14,17 @@
     - name: set command for ansible container
       set_fact:
         fetch_args:
-        - "/tmp/ansible/get_file.yaml"
-        - "-e"
-        - "s_3_path=alay-etcd-backup/etcd.backup"
-        - "-e"
-        - "s_3_aws_secret=aws"
-        - "-e"
-        - "storage_type=S3"
-        - "-e"
-        - "file_path=/var/etcd"
+          - "/tmp/ansible/get_file.yaml"
+          - "-e"
+          - "s_3_path={{ s_3.path }}"
+          - "-e"
+          - "s_3_aws_secret={{ s_3.aws_secret }}"
+          - "-e"
+          - "storage_type={{ backup_storage_type }}"
+          - "-e"
+          - "etcd_namespace={{ etcd_namespace }}"
+          - "-e"
+          - "file_path=/var/etcd"
 
     - name: Initialise ansible container
       set_fact:

@@ -32,12 +32,11 @@ etcd_client_tls_commands: []
 etcd_secure_client: "absent"
 etcd_secure_peer: "absent"
 etcd_remove_pods: []
-etcd_members: []
 
 #etcd_endpoints: http://192.168.39.245:32379
-storage_type: S3
-s_3:
-  # The format of "path" must be: "<s3-bucket-name>/<path-to-backup-file>"
-  # e.g: "mybucket/etcd.backup"
-  path: alay-etcd-backup/etcd.backup
-  aws_secret: aws
+#storage_type: S3
+#s3:
+#  # The format of "path" must be: "<s3-bucket-name>/<path-to-backup-file>"
+#  # e.g: "mybucket/etcd.backup"
+#  path: alay-etcd-backup/trial1
+#  aws_secret: aws
