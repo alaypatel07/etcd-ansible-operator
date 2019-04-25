@@ -1,0 +1,6 @@
+packageName: etcd-ha
+channels:
+- name: singlenamespace-alpha
+  currentCSV: etcd-ha-operator.v0.6.0
+- name: clusterwide-alpha
+  currentCSV: etcd-ha-operator.v0.6.0-clusterwide

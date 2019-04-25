@@ -11,7 +11,6 @@ metadata:
 rules:
 - apiGroups:
   - etcd.database.coreos.com
-  - extensions
   resources:
   - "*"
   verbs:
@@ -31,9 +30,7 @@ rules:
 - apiGroups:
   - apps
   resources:
-  - deployments
-  - daemonsets
-  - replicasets
+  - deployment
   - statefulsets
   verbs:
   - "*"
