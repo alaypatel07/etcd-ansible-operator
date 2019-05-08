@@ -70,13 +70,13 @@ spec:
     mediatype: image/png
   installModes:
   - type: OwnNamespace
-    supported: true
+    supported: false
   - type: SingleNamespace
     supported: true
   - type: MultiNamespace
     supported: false
   - type: AllNamespaces
-    supported: true
+    supported: False
   install:
     strategy: deployment
     spec:

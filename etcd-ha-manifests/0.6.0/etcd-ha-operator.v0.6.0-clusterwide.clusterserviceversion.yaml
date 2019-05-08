@@ -99,7 +99,6 @@ spec:
   keywords: ['etcd in High Availibility mode', 'etcd', 'key value', 'database', 'coreos', 'open source']
   version: 0.6.0-clusterwide
   maturity: alpha
-  replaces: etcdoperator.v0.6.0-clusterwide
   maintainers:
   - name: Ansible Operator Team
     email: ao-team@redhat.com
